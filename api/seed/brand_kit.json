@@ -1,0 +1,48 @@
+{
+  "brand": {
+    "name": "NutriCrunch",
+    "colors": ["#E8572A", "#121933", "#F6F4EE"],
+    "voice_guide": "NutriCrunch is a fictional Indian protein-bar brand used for the BrandPilot demo.\n\n§1 Who we talk to\n1.1 Busy students and young professionals who want honest, simple nutrition.\n1.2 We speak to one person: use 'you', not 'guys' or 'folks'.\n\n§2 How we sound\n2.1 Warm, clear and confident. Short sentences.\n2.2 Plain words over jargon. Explain any nutrition term.\n2.3 At most one exclamation mark per post. No ALL CAPS shouting.\n2.4 No slang such as 'OMG', 'lit' or 'bro'.\n2.5 Positive, never fear-based. We don't shame food choices.\n\n§3 Naming\n3.1 Always write our name as 'NutriCrunch' (one word, capital N and C).\n3.2 Flavours are written in Title Case: Choco Almond, Peanut Crunch, Coffee Kick, Berry Blast.\n\n§4 Claims policy\n4.1 No ranking claims ('#1', 'number one') without an approved fact.\n4.2 Never guarantee results.\n4.3 Superlatives ('best', 'healthiest') need proof from the Fact Vault.\n4.4 No health or medical claims (cures, heals, prevents). FSSAI advertising rules apply.\n4.5 Every number in a post must match an approved fact."
+  },
+  "facts": [
+    {"code": "F-01", "statement": "Each NutriCrunch bar is 60 g and contains 20 g of protein.", "source": "Nutrition label v3"},
+    {"code": "F-02", "statement": "NutriCrunch is loved by 10,000+ customers.", "source": "Orders data, Sept 2026"},
+    {"code": "F-03", "statement": "Price is ₹99 per bar, or ₹549 for a pack of 6, from 1 Oct 2026.", "source": "Price list Oct 2026"},
+    {"code": "F-04", "statement": "There are 4 flavours: Choco Almond, Peanut Crunch, Coffee Kick and Berry Blast.", "source": "Product catalogue"},
+    {"code": "F-05", "statement": "Bars are made in an FSSAI-licensed facility in Pune.", "source": "FSSAI licence"},
+    {"code": "F-06", "statement": "NutriCrunch bars contain no palm oil.", "source": "Nutrition label v3"},
+    {"code": "F-07", "statement": "No added sugar. Each bar has 2 g of natural sugar from dates, so it is not sugar-free.", "source": "Nutrition label v3, updated 2 Oct 2026"},
+    {"code": "F-08", "statement": "All flavours are vegetarian; Peanut Crunch and Berry Blast are vegan.", "source": "Product catalogue"},
+    {"code": "F-09", "statement": "Free delivery on orders above ₹499.", "source": "Shipping policy"},
+    {"code": "F-10", "statement": "We ship across India in 3 to 5 working days.", "source": "Shipping policy"},
+    {"code": "F-11", "statement": "Unopened packs can be returned within 7 days.", "source": "Returns policy"},
+    {"code": "F-12", "statement": "Rated 4.6 out of 5 from 2,300 reviews on our website.", "source": "Website reviews, Oct 2026"},
+    {"code": "F-13", "statement": "NutriCrunch was founded in 2023 in Pune.", "source": "Company profile"},
+    {"code": "F-14", "statement": "All bars contain nuts and are not suitable for people with nut allergies.", "source": "Allergen statement"},
+    {"code": "F-15", "statement": "Coffee Kick contains 40 mg of caffeine per bar.", "source": "Nutrition label v3"}
+  ],
+  "rules": [
+    {"code": "R-1.2a", "kind": "banned_word", "pattern": "guys", "replacement": "everyone", "message": "We speak to one person as 'you'. Avoid 'guys' (Voice guide §1.2).", "severity": "low"},
+    {"code": "R-1.2b", "kind": "banned_word", "pattern": "folks", "replacement": "everyone", "message": "We speak to one person as 'you'. Avoid 'folks' (Voice guide §1.2).", "severity": "low"},
+    {"code": "R-2.3a", "kind": "tone", "pattern": "!{2,}", "replacement": "!", "message": "At most one exclamation mark (Voice guide §2.3).", "severity": "low"},
+    {"code": "R-2.3b", "kind": "tone", "pattern": "\\b(?!FSSAI\\b)[A-Z]{4,}\\b", "replacement": null, "message": "No ALL CAPS shouting. Use normal case (Voice guide §2.3).", "severity": "low"},
+    {"code": "R-2.4a", "kind": "banned_word", "pattern": "OMG", "replacement": null, "message": "No slang such as 'OMG' (Voice guide §2.4).", "severity": "low"},
+    {"code": "R-2.4b", "kind": "banned_word", "pattern": "bro", "replacement": null, "message": "No slang such as 'bro' (Voice guide §2.4).", "severity": "low"},
+    {"code": "R-2.5", "kind": "banned_word", "pattern": "junk food addicts", "replacement": null, "message": "We never shame food choices (Voice guide §2.5).", "severity": "medium"},
+    {"code": "R-3.1a", "kind": "term", "pattern": "Nutri Crunch", "replacement": "NutriCrunch", "message": "Our name is one word: 'NutriCrunch' (Voice guide §3.1).", "severity": "medium"},
+    {"code": "R-3.1b", "kind": "term", "pattern": "Nutri-Crunch", "replacement": "NutriCrunch", "message": "Our name is one word: 'NutriCrunch' (Voice guide §3.1).", "severity": "medium"},
+    {"code": "R-3.1c", "kind": "term", "pattern": "NutriCrunch", "replacement": "NutriCrunch", "message": "Write our name with a capital N and C: 'NutriCrunch' (Voice guide §3.1).", "severity": "low"},
+    {"code": "R-3.2", "kind": "term", "pattern": "choco almond", "replacement": "Choco Almond", "message": "Flavour names are in Title Case (Voice guide §3.2).", "severity": "low"},
+    {"code": "R-4.1", "kind": "claim_policy", "pattern": "(?i)(#\\s?1\\b|\\bnumber one\\b|\\bno\\.?\\s?1\\b)", "replacement": null, "message": "Ranking claims like '#1' need an approved fact, and none exists (Claims policy §4.1).", "severity": "high"},
+    {"code": "R-4.2", "kind": "claim_policy", "pattern": "(?i)\\bguarantee(d|s)?\\b", "replacement": null, "message": "We never guarantee results (Claims policy §4.2).", "severity": "high"},
+    {"code": "R-4.3", "kind": "claim_policy", "pattern": "(?i)\\b(best|healthiest|tastiest)\\b", "replacement": null, "message": "Superlatives need proof from the Fact Vault (Claims policy §4.3).", "severity": "medium"},
+    {"code": "R-4.4", "kind": "claim_policy", "pattern": "(?i)\\b(cures?|heals?|prevents?)\\b", "replacement": null, "message": "No health or medical claims under FSSAI advertising rules (Claims policy §4.4).", "severity": "high"},
+    {"code": "R-4.5", "kind": "claim_policy", "pattern": "(?i)\\b(100%\\s*)?sugar[- ]free\\b", "replacement": "no added sugar", "message": "Our bars have natural sugar from dates, so 'sugar-free' is wrong. Approved wording: 'no added sugar' (Fact F-07).", "severity": "high"},
+    {"code": "R-A.1", "kind": "accessibility", "pattern": "(?i)\\bclick here\\b", "replacement": "see the details", "message": "Link text should say where it goes, not 'click here' (Accessibility guide §1).", "severity": "low"},
+    {"code": "R-A.2", "kind": "accessibility", "pattern": "#[a-z]{12,}\\b", "replacement": null, "message": "Write long hashtags in CamelCase (e.g. #NoAddedSugar) so screen readers can read them (Accessibility guide §2).", "severity": "low"}
+  ],
+  "demo_scans": [
+    {"channel": "instagram", "content": "Meet India's #1 protein bar — 100% sugar-free! Grab yours now, guys!!"},
+    {"channel": "email", "content": "OMG, Nutri Crunch is the BEST snack for exam season. Our bars are guaranteed to boost your focus. Click here to order your choco almond pack today. #proteinforstudents"}
+  ]
+}

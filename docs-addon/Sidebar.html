@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #1b1f3b; margin: 12px; }
+  button { font: inherit; border-radius: 6px; padding: 6px 10px; border: 1px solid #d9dce4; background: #fff; cursor: pointer; }
+  button.primary { background: #1b1f3b; color: #fff; border-color: #1b1f3b; }
+  button:disabled { opacity: .5; cursor: default; }
+  .note { color: #5b6078; margin: 8px 0; }
+  .card { border: 1px solid #d9dce4; border-radius: 8px; padding: 10px; margin: 10px 0; }
+  .type { font-weight: bold; }
+  .high { color: #c2255c; } .medium { color: #c2410c; } .low { color: #1c6fc2; }
+  .src { color: #5b6078; font-size: 12px; margin: 4px 0; }
+  .fix { background: #edeff3; border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
+  del { color: #5b6078; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .error { color: #c2255c; }
+</style>
+</head>
+<body>
+  <button class="primary" id="go" onclick="run()">Check with BrandPilot</button>
+  <p class="note">Checks your selection, or the whole document if nothing is selected.</p>
+  <div id="out"></div>
+<script>
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  var AI = { ok: 'Brand rules and AI checks ran.', off: 'Brand rules ran. AI checks are off on the server.',
+             partial: 'Some AI checks could not run.', error: 'AI checks could not run; brand rules still ran.' };
+  function run() {
+    var go = document.getElementById('go'), out = document.getElementById('out');
+    go.disabled = true; out.textContent = 'Checking…';
+    google.script.run.withSuccessHandler(function (r) {
+      go.disabled = false; out.textContent = '';
+      out.appendChild(el('p', 'note', (r.issues.length ? r.issues.length + ' issue(s) in your ' : 'No issues in your ') + r.scope + '. ' + AI[r.aiStatus]));
+      r.issues.forEach(function (i) { out.appendChild(card(i)); });
+    }).withFailureHandler(function (e) {
+      go.disabled = false; out.textContent = ''; out.appendChild(el('p', 'error', e.message));
+    }).checkDocument();
+  }
+  function card(i) {
+    var c = el('div', 'card');
+    var head = el('div'); head.appendChild(el('span', 'type', i.type + ' ')); head.appendChild(el('span', i.severity, i.severity === 'high' ? 'High risk' : i.severity));
+    c.appendChild(head);
+    c.appendChild(el('div', '', i.why));
+    c.appendChild(el('div', 'src', 'Source: ' + i.source_code + (i.needs_human ? ' · a reviewer must confirm this' : '')));
+    if (i.span_start >= 0 && i.fix !== null) {
+      var f = el('div', 'fix'); f.appendChild(el('del', '', i.excerpt)); f.appendChild(document.createTextNode(' → ' + (i.fix || '(remove)')));
+      c.appendChild(f);
+    } else if (i.span_start >= 0) {
+      c.appendChild(el('div', 'fix', '“' + i.excerpt + '” needs a human edit.'));
+    }
+    var row = el('div', 'row');
+    if (i.span_start >= 0 && i.fix !== null) {
+      var a = el('button', 'primary', 'Accept fix');
+      a.onclick = function () { a.disabled = true; google.script.run.withSuccessHandler(function () { c.remove(); })
+        .withFailureHandler(function (e) { a.disabled = false; alert(e.message); }).acceptFix(i.id, i.excerpt, i.fix); };
+      row.appendChild(a);
+    }
+    var ig = el('button', '', 'Ignore');
+    ig.onclick = function () {
+      var reason = prompt('Why is this fine? (helps the brand team improve unclear rules)');
+      if (!reason || reason.trim().length < 3) return;
+      google.script.run.withSuccessHandler(function () { c.remove(); }).withFailureHandler(function (e) { alert(e.message); }).ignoreIssue(i.id, reason.trim());
+    };
+    row.appendChild(ig);
+    c.appendChild(row);
+    return c;
+  }
+</script>
+</body>
+</html>
