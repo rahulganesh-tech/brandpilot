@@ -13,8 +13,8 @@ Core flow that MUST work end to end (highest priority, 30% of score):
 Brand Vault setup → New Scan → Issue cards (why + source + fix) → Accept / Edit / Ignore-with-reason → Manager approve → Saved version
 
 ## Stack
-- Frontend: Next.js (App Router, TypeScript) + Tailwind CSS → Cloud Run service `brandpilot-web`
-- Backend: FastAPI (Python 3.11) → Cloud Run service `brandpilot-api`
+- Frontend: Next.js (App Router, TypeScript) + Tailwind CSS → Vercel
+- Backend: FastAPI (Python 3.11+) → Vercel
 - Database + auth: Supabase (Postgres + pgvector + Supabase Auth)
 - LLM: Gemini API (JSON mode, temperature 0)
 - Embeddings: Gemini `text-embedding` model (keeps the container small); 768-dim vectors in pgvector
@@ -72,7 +72,7 @@ Issue card shows: TYPE · SEVERITY, Why, Source (code), Fix, buttons. Never show
 - README: setup, architecture diagram, demo login, test results, AI-assistance disclosure (Antigravity + Gemini).
 
 ## Milestones
-- Day 1 (8 Nov): DB + Vault APIs + rule engine + Next.js screens with mock data; both services live on Cloud Run.
+- Day 1 (8 Nov): DB + Vault APIs + rule engine + Next.js screens with mock data; services live on Vercel.
 - Day 2 (9 Nov): claim pipeline + tone check + real issue cards + accept/edit/ignore + login/roles + approve + versions.
 - Day 3 (10 Nov): Gap Radar + basic image check (OCR → same scan, contrast check); run eval; fix bugs; README; updated PDF; SUBMIT by night.
 

@@ -28,13 +28,13 @@ function showSettings() {
   var current = PROPS.getProperty('API_URL') || '';
   var res = ui.prompt(
     'BrandPilot settings',
-    'API URL (your brandpilot-api Cloud Run URL)' + (current ? '\nNow: ' + current : ''),
+    'API URL (e.g. https://your-brandpilot-api.vercel.app or http://localhost:8080)' + (current ? '\nNow: ' + current : ''),
     ui.ButtonSet.OK_CANCEL
   );
   if (res.getSelectedButton() !== ui.Button.OK) return;
   var url = res.getResponseText().trim().replace(/\/+$/, '');
-  if (!/^https:\/\/[^\s]+\.run\.app$/.test(url)) {
-    ui.alert('Please enter the https://….run.app URL of the BrandPilot API.');
+  if (!/^https?:\/\/[^\s]+$/.test(url)) {
+    ui.alert('Please enter a valid HTTP/HTTPS URL for the BrandPilot API.');
     return;
   }
   PROPS.setProperty('API_URL', url);

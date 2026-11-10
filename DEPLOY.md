@@ -1,103 +1,142 @@
-# Deploying BrandPilot
+# Deploying BrandPilot to Vercel
 
-Database on **Supabase**, both apps on **Google Cloud Run** in Mumbai (`asia-south1`).
+BrandPilot is architected to run seamlessly on **Vercel** with a **Supabase** PostgreSQL database (+ pgvector) and the **Gemini API** for AI-powered claim, tone, and image analysis.
 
-## 1. Supabase (database)
-
-1. Create a project at supabase.com, region **Mumbai (ap-south-1)**. Save the database password.
-2. Open **SQL Editor → New query**, paste all of `api/sql/schema.sql`, and click **Run**.
-3. Open **Connect** (top bar) → **Transaction pooler** and copy the URI. It looks like
-   `postgresql://postgres.abcd:PASSWORD@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`.
-   Use the **pooler** URI: Cloud Run can't reach Supabase's direct (IPv6) address.
-4. Load the sample brand from your laptop:
-
-   ```bash
-   cd api
-   pip install -r requirements.txt
-   export DATABASE_URL="<pooler URI>"     # PowerShell: $env:DATABASE_URL="<pooler URI>"
-   python -m seed.seed --demo
-   ```
-
-## 2. Google Cloud (one time)
-
-```bash
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+```mermaid
+flowchart LR
+  U[Creator / Manager] --> W[Next.js 15 Web<br/>Vercel]
+  W -- /api proxy / services --> A[FastAPI API<br/>Vercel Serverless / Service]
+  A --> R[Brand Rule Engine]
+  A --> DB[(Supabase Postgres<br/>+ pgvector)]
+  A --> G[Gemini 2.5 Flash<br/>Claims, Tone & Vision OCR]
 ```
 
-Billing must be enabled on the project.
+---
 
-## 3. Deploy the API
+## 1. Supabase Database Setup
+
+BrandPilot uses PostgreSQL with the `pgvector` extension for semantic search across approved facts.
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Go to **SQL Editor → New Query**, paste the contents of [`api/sql/schema.sql`](api/sql/schema.sql), and click **Run**.
+3. Open **Project Settings → Database → Connection string**:
+   - Choose **URI** and select **Transaction pooler** (port `6543`).
+   - Copy the URI. It looks like:
+     ```text
+     postgresql://postgres.[project-ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres
+     ```
+   > [!IMPORTANT]
+   > Always use the **Transaction pooler** URI (port `6543`). Serverless functions on Vercel scale dynamically, and transaction pooling ensures high connection efficiency without exhausting database limits.
+
+---
+
+## 2. Deploy to Vercel
+
+You can deploy BrandPilot using any of the following methods:
+
+### Option A: Unified Deploy via Vercel Services (Recommended — Single Project)
+
+BrandPilot includes a root [`vercel.json`](vercel.json) that uses **Vercel Services** to deploy both the Next.js frontend and FastAPI backend into a single unified Vercel project:
+
+1. Push your repository to GitHub.
+2. In the [Vercel Dashboard](https://vercel.com/new), click **Import** on your repository.
+3. Keep the **Root Directory** as `.` (root).
+4. Add the following **Environment Variables**:
+   | Variable | Value | Description |
+   |---|---|---|
+   | `DATABASE_URL` | `postgresql://postgres...:6543/postgres` | Supabase transaction pooler URI |
+   | `GEMINI_API_KEY` | `AIzaSy...` | *(Optional)* Google AI Studio key for AI claim, tone & vision checks |
+5. Click **Deploy**. Vercel will deploy both the Next.js frontend and the FastAPI backend. Public routes under `/api/*` are automatically routed to the backend service.
+
+---
+
+### Option B: Two Linked Projects (Standard Serverless Functions)
+
+If you prefer deploying the API and frontend as two separate Vercel projects:
+
+#### 1. Deploy the API (`brandpilot-api`)
+1. In Vercel, import the repository and set **Root Directory** to `api`.
+2. Framework Preset: **Other**.
+3. Add Environment Variables:
+   - `DATABASE_URL`: Your Supabase pooler URI.
+   - `GEMINI_API_KEY`: Your Gemini API key.
+4. Click **Deploy**. Note your deployment URL (e.g., `https://brandpilot-api.vercel.app`).
+
+#### 2. Deploy the Web App (`brandpilot-web`)
+1. In Vercel, import the same repository again and set **Root Directory** to `web`.
+2. Framework Preset: **Next.js** (automatically detected).
+3. Add Environment Variable:
+   - `API_URL`: The URL of your deployed API from step 1 (e.g., `https://brandpilot-api.vercel.app`).
+4. Click **Deploy**.
+
+---
+
+### Option C: Deploy via Vercel CLI
+
+You can also deploy directly from your terminal using the Vercel CLI:
 
 ```bash
-cd api
-cp env.example.yaml env.yaml      # then put your pooler URI (and Gemini key) in env.yaml
-gcloud run deploy brandpilot-api --source . --region asia-south1 \
-  --allow-unauthenticated --env-vars-file env.yaml
+# Install Vercel CLI globally
+npm i -g vercel
+
+# Log in to your Vercel account
+vercel login
+
+# Deploy the project
+vercel
 ```
 
-Copy the service URL it prints, e.g. `https://brandpilot-api-xxxxx.asia-south1.run.app`,
-and check `<URL>/health` returns `"ok": true`.
-
-`env.yaml` is git-ignored. Never commit it.
-
-**AI checks:** put your key from aistudio.google.com in `GEMINI_API_KEY` in `env.yaml`. Without it
-BrandPilot still works with brand rules only. `<URL>/health` shows `"ai": true` when the key is loaded.
-You can change models with `GEMINI_MODEL` (default `gemini-2.5-flash`) and `GEMINI_EMBED_MODEL`
-(default `gemini-embedding-001`). Approved facts are embedded automatically the first time a draft is checked.
-
-## 4. Deploy the web app
-
-### Option A: Deploy to Google Cloud Run
-
+When prompted, follow the prompts to link the project and deploy. Add your environment variables using:
 ```bash
-cd ../web
-gcloud run deploy brandpilot-web --source . --region asia-south1 \
-  --allow-unauthenticated --set-env-vars API_URL=https://brandpilot-api-xxxxx.asia-south1.run.app
+vercel env add DATABASE_URL
+vercel env add GEMINI_API_KEY
+vercel --prod
 ```
 
-Open the URL it prints.
+---
 
-### Option B: Deploy to Vercel (Recommended)
+## 3. Seed Sample Brand Kit (One-Click)
 
-1. Push this repository to GitHub (`https://github.com/rahulganesh-tech/brandpilot.git`).
-2. In the [Vercel Dashboard](https://vercel.com/new), select **Add New Project** and import the `brandpilot` repo.
-3. In **Build and Output Settings** / **Project Settings**:
-   - Set **Root Directory** to `web` (click Edit, select `web`, click Continue).
-   - Framework Preset will automatically be detected as **Next.js**.
-4. In **Environment Variables**, add:
-   - `API_URL`: The URL of your deployed FastAPI API backend (e.g., `https://brandpilot-api-xxxxx.asia-south1.run.app`).
-5. Click **Deploy**. Vercel will automatically build and deploy the Next.js app. Every subsequent `git push` to `main` will trigger an automated deployment.
+Once your Vercel deployment is live, load the **NutriCrunch** sample brand kit (18 brand rules, 15 approved facts, and demo drafts):
 
-## 5. Google Docs add-on (optional)
+- **In the Web App:** Open your deployed Vercel site. If no brand is detected, a banner appears with:
+  > **🌱 Load NutriCrunch Sample Brand**  
+  Click it to seed the database instantly from the browser!
+- **Via API:** Send a POST request to your API's seed endpoint:
+  ```bash
+  curl -X POST https://your-brandpilot-deployment.vercel.app/api/seed
+  ```
 
-Follow `docs-addon/README.md`. In **BrandPilot → Settings** paste the API URL from step 3.
+---
 
-## 6. Before judging
+## 4. Environment Variables Reference
 
-Keep one instance warm so judges never wait for a cold start:
+| Variable | Required | Service | Description |
+|---|---|---|---|
+| `DATABASE_URL` | **Yes** | Backend | Supabase PostgreSQL transaction pooler URI (port 6543) |
+| `GEMINI_API_KEY` | No | Backend | Google AI Studio API key for AI claim verification, tone analysis, and Gemini Vision OCR |
+| `GEMINI_MODEL` | No | Backend | Model name (default: `gemini-2.5-flash`) |
+| `GEMINI_EMBED_MODEL` | No | Backend | Embedding model (default: `gemini-embedding-001`) |
+| `API_URL` | If separate | Frontend | Backend API URL (only needed when frontend is deployed independently of the backend) |
+| `CORS_ORIGINS` | No | Backend | Allowed CORS origins (defaults to `http://localhost:3000`) |
 
-```bash
-gcloud run services update brandpilot-api --region asia-south1 --min-instances 1
-gcloud run services update brandpilot-web --region asia-south1 --min-instances 1
-```
+---
 
-Set them back to `0` after the round to stop the cost.
+## 5. Image & Vision OCR on Vercel
 
-## Updating
+When running on Vercel Serverless Functions:
+- Local Tesseract OCR binaries are not installed in standard serverless environments.
+- BrandPilot automatically falls back to **Gemini Multimodal Vision** (`gemini-2.5-flash`) when `GEMINI_API_KEY` is provided. Gemini multimodal vision reads text from images with high fidelity across creative fonts and social media formats.
+- WCAG 1.4.3 text contrast and brand palette adherence checks run purely in Python with Pillow, requiring no external system binaries.
 
-Run the same `gcloud run deploy` command again after pulling new code. If `api/sql/schema.sql`
-changed, run it again in the Supabase SQL editor first (it is safe to re-run).
+---
 
-## Troubleshooting
+## 6. Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| Web shows "can't reach its server" | `API_URL` on brandpilot-web is wrong or the API is down. Check `<API URL>/health`. |
-| API logs `DATABASE_URL is not set` | `env.yaml` was not passed. Redeploy with `--env-vars-file env.yaml`. |
-| API logs a connection timeout | You used the direct Supabase URI. Use the **Transaction pooler** URI (port 6543). |
-| "No brand yet" on the home page | Run `python -m seed.seed --demo` against the same database. |
-| Page says "AI checks couldn't run" | Check the API logs on Cloud Run. Usually a wrong `GEMINI_API_KEY` or a model name your key can't use. |
-| API error mentions `ai_status` or `image` | The database is on an old schema. Re-run `api/sql/schema.sql` in Supabase. |
-| Image upload says OCR isn't installed | You deployed with an old Dockerfile. Redeploy `api` (the Dockerfile installs Tesseract). |
+| Symptom | Cause | Solution |
+|---|---|---|
+| Web shows 502: *"BrandPilot can't reach its server right now"* | `API_URL` is wrong or the backend service is not running. | Check your Vercel deployment logs and verify `API_URL` points to your deployed backend. |
+| API returns: *"DATABASE_URL is not set"* | Missing environment variable in Vercel project settings. | Add `DATABASE_URL` in **Vercel Dashboard → Project Settings → Environment Variables** and redeploy. |
+| Database connection timeout | Direct Supabase IPv6 address used instead of pooler. | Use the **Transaction pooler** URI from Supabase (starts with `aws-0-...pooler.supabase.com` on port `6543`). |
+| "No brand yet" on home page | Database schema created but brand kit not seeded. | Click **Load NutriCrunch Sample Brand** on the home page or run `curl -X POST <URL>/api/seed`. |
+| AI checks show as "off" | `GEMINI_API_KEY` not configured. | Add `GEMINI_API_KEY` in Vercel environment variables. BrandPilot will continue to run deterministic brand rules even without AI checks. |

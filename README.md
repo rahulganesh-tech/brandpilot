@@ -43,19 +43,18 @@ once. Creators paste a post or upload a design. BrandPilot marks every problem, 
 
 ```mermaid
 flowchart LR
-  U[Creator / Manager] --> W[Next.js web<br/>Cloud Run]
-  W -- /api proxy --> A[FastAPI<br/>Cloud Run]
+  U[Creator / Manager] --> W[Next.js web<br/>Vercel]
+  W -- /api proxy / services --> A[FastAPI<br/>Vercel]
   A --> R[Rule engine]
   A --> DB[(Supabase Postgres<br/>+ pgvector)]
-  A --> G[Gemini API<br/>claim + tone checks]
-  A --> V[Tesseract OCR<br/>+ colour/contrast]
+  A --> G[Gemini API<br/>claim + tone + vision checks]
+  A --> V[OCR + colour/contrast]
   D[Google Docs add-on] --> A
 ```
 
-- **web/** – Next.js 15 (App Router, TypeScript, Tailwind CSS 4). The browser only talks to `/api/*`,
-  which the Next server forwards to the API using the runtime `API_URL`. One image works everywhere and needs no CORS.
-- **api/** – FastAPI + psycopg 3. All SQL is in `app/repo.py`; rule checks in `app/rules_engine.py`;
-  AI checks in `app/ai.py` (Gemini client in `app/gemini.py`); image checks in `app/vision.py`;
+- **web/** – Next.js 15 (App Router, TypeScript, Tailwind CSS 4). Runs on Vercel with automatic SSR, static optimization, and API proxy routing.
+- **api/** – FastAPI + psycopg 3. Runs on Vercel Serverless / Services or standalone container. All SQL is in `app/repo.py`; rule checks in `app/rules_engine.py`;
+  AI checks in `app/ai.py` (Gemini client in `app/gemini.py`); image checks in `app/vision.py` (with Gemini multimodal vision fallback);
   personal data masking in `app/privacy.py`.
 - **docs-addon/** – Google Apps Script add-on for Google Docs (early version).
 - **api/sql/schema.sql** – tables for brands, facts (with `vector(768)` embeddings), rules, scans,
@@ -93,11 +92,11 @@ API_URL=http://localhost:8080 npm run dev             # open http://localhost:30
 
 Use **Viewing as** in the top bar to switch between Creator and Manager.
 
-## Deploy
+## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frahulganesh-tech%2Fbrandpilot%2Ftree%2Fmain%2Fweb&project-name=brandpilot-web&env=API_URL&envDescription=FastAPI%20backend%20URL%20(e.g.%20https%3A%2F%2Fbrandpilot-api-...run.app))
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frahulganesh-tech%2Fbrandpilot&project-name=brandpilot)
 
-See [DEPLOY.md](DEPLOY.md) for full deployment steps (Supabase database, FastAPI on Google Cloud Run, and Next.js web on Vercel or Cloud Run).
+See [DEPLOY.md](DEPLOY.md) for complete deployment steps on **Vercel** with **Supabase**.
 
 
 ## Accuracy
@@ -150,5 +149,5 @@ Dr. M.G.R. Educational and Research Institute
 ## Disclosure
 
 Built with AI assistance (Claude by Anthropic and Google Antigravity) for code generation and review.
-The team reviewed, tested and is responsible for all code. External services: Supabase, Google Cloud Run,
+The team reviewed, tested and is responsible for all code. External services: Supabase, Vercel,
 Gemini API, Tesseract OCR, Google Fonts. NutriCrunch is a fictional brand created for this demo.

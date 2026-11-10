@@ -245,9 +245,33 @@ def colour_findings(img: Image.Image, brand_colours: list[str]) -> list[Finding]
     ]
 
 
-def analyze_image(data: bytes, brand_colours: list[str]) -> ImageReport:
+def analyze_image(
+    data: bytes,
+    brand_colours: list[str],
+    image_type: str = "image/png",
+    llm: object | None = None,
+) -> ImageReport:
     img = load_image(data)
-    lines = read_lines(img)
-    text = "\n".join(line.text for line in lines)
+    text = ""
+    lines: list[Line] = []
+
+    # 1. Try local Tesseract OCR if available
+    try:
+        lines = read_lines(img)
+        text = "\n".join(line.text for line in lines)
+    except ImageError:
+        # Tesseract not installed (e.g. on serverless Vercel runtime)
+        lines = []
+
+    # 2. Fallback to Gemini multimodal vision when Tesseract is missing
+    if not text.strip() and llm is not None and hasattr(llm, "extract_image_text"):
+        try:
+            gemini_text = llm.extract_image_text(data, image_type)
+            if gemini_text and gemini_text.strip():
+                text = gemini_text.strip()
+                lines = [Line(l.strip(), (0, 0, img.width, img.height)) for l in text.splitlines() if l.strip()]
+        except Exception:
+            pass
+
     findings = contrast_findings(img, lines) + colour_findings(img, brand_colours)
     return ImageReport(text=text, findings=findings)

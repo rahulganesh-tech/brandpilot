@@ -63,9 +63,44 @@ def _rescan(conn, scan: dict, content: str) -> None:
 
 @app.get("/health")
 def health():
+    db_ok = False
+    try:
+        with db.connection() as conn:
+            conn.execute("select 1")
+        db_ok = True
+    except Exception as exc:
+        return {"ok": False, "database": False, "error": str(exc)}
+    import shutil
+    has_tesseract = shutil.which("tesseract") is not None
+    has_ai = pipeline.llm_provider() is not None
+    ocr_mode = "tesseract" if has_tesseract else ("gemini" if has_ai else "none")
+    return {
+        "ok": True,
+        "database": True,
+        "ai": has_ai,
+        "ocr": ocr_mode,
+        "deployment": "vercel",
+        "version": "0.2.0",
+    }
+
+
+@app.post("/seed")
+def seed_demo_data(demo: bool = True):
+    """Seed the database with the sample NutriCrunch brand kit and demo drafts."""
+    from seed.seed import seed as run_seed
+
+    try:
+        brand_id = run_seed(demo=demo)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to seed brand kit: {exc}") from exc
+
     with db.connection() as conn:
-        conn.execute("select 1")
-    return {"ok": True, "ai": pipeline.llm_provider() is not None}
+        brand = repo.get_brand(conn, brand_id)
+        return {
+            "ok": True,
+            "brand": brand,
+            "message": f"Successfully loaded brand '{brand['name']}' with facts, rules, and demo content.",
+        }
 
 
 # ---------- brands ----------
@@ -194,7 +229,12 @@ def _image_scan(brand_id: str, data: bytes, image_type: str, channel: str, autho
         if brand is None:
             _404("Brand")
         try:
-            report = analyze_image(data, brand["colors"])
+            report = analyze_image(
+                data,
+                brand["colors"],
+                image_type=image_type,
+                llm=pipeline.llm_provider(),
+            )
         except ImageError as exc:
             raise HTTPException(400, str(exc)) from exc
         scan = repo.create_image_scan(conn, brand_id, author, channel, report.text, data, image_type)

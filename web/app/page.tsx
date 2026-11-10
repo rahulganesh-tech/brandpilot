@@ -15,8 +15,9 @@ const LIMIT = 20000;
 
 export default function WritePage() {
   const router = useRouter();
-  const { brand, brandError, person } = useWorkspace();
+  const { brand, brandError, person, seedDemoBrand } = useWorkspace();
   const [mode, setMode] = useState<"text" | "image">("text");
+  const [seeding, setSeeding] = useState(false);
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -91,9 +92,26 @@ export default function WritePage() {
         </p>
 
         {brandError && (
-          <p role="alert" className="mt-6 rounded-lg border border-high/40 bg-paper p-4 text-high">
-            {brandError}
-          </p>
+          <div role="alert" className="mt-6 rounded-lg border border-rule bg-paper p-4 text-sm shadow-sm">
+            <p className="text-high font-medium">{brandError}</p>
+            {brandError.includes("No brand yet") && (
+              <button
+                type="button"
+                disabled={seeding}
+                onClick={async () => {
+                  setSeeding(true);
+                  try {
+                    await seedDemoBrand();
+                  } finally {
+                    setSeeding(false);
+                  }
+                }}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-ink px-3.5 py-1.5 text-xs font-semibold text-paper hover:bg-ink/90 transition-colors disabled:opacity-50"
+              >
+                {seeding ? "Loading brand kit..." : "🌱 Load NutriCrunch Sample Brand (18 rules, 15 facts)"}
+              </button>
+            )}
+          </div>
         )}
 
         <div className="mt-8 rounded-xl border border-rule bg-paper shadow-[0_1px_0_#d9dce4,0_12px_32px_-18px_rgba(27,31,59,0.35)]">

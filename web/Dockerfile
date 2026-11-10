@@ -16,5 +16,5 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
-# Cloud Run provides $PORT; Next's standalone server reads it.
+# Port provided by environment (default 3000); Next standalone server reads $PORT.
 CMD ["node", "server.js"]

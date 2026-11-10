@@ -57,7 +57,14 @@ export default function VaultPage() {
     }
   }
 
-  if (!brand) return <p className="text-muted">{error ?? "Loading…"}</p>;
+  if (!brand) {
+    return (
+      <div className="max-w-xl">
+        <h1 className="font-serif text-3xl">Brand vault</h1>
+        <p className="mt-2 text-muted">{error ?? "Loading brand vault…"}</p>
+      </div>
+    );
+  }
   const canEdit = role === "manager";
 
   return (

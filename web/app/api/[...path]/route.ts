@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Forwards /api/* to the FastAPI service. API_URL is read at runtime, so one
-// container image works locally and on Cloud Run, and the browser never needs CORS.
+// Forwards /api/* to the FastAPI service. API_URL is read at runtime,
+// seamlessly bridging Next.js to the backend on Vercel or locally.
 const API_URL = (process.env.API_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
 export const dynamic = "force-dynamic";

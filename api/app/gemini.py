@@ -13,6 +13,7 @@ EMBED_DIM = 768
 class LLM(Protocol):
     def generate_json(self, system: str, prompt: str) -> Any: ...
     def embed(self, texts: list[str]) -> list[list[float]]: ...
+    def extract_image_text(self, image_bytes: bytes, mime_type: str = "image/png") -> str: ...
 
 
 class GeminiError(RuntimeError):
@@ -72,3 +73,39 @@ class GeminiClient:
         if any(len(v) != EMBED_DIM for v in vectors):
             raise GeminiError("Gemini returned embeddings of the wrong size")
         return vectors
+
+    def extract_image_text(self, image_bytes: bytes, mime_type: str = "image/png") -> str:
+        """Extract visible text from an image using Gemini multimodal vision."""
+        import base64
+
+        body = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": base64.b64encode(image_bytes).decode("ascii"),
+                            }
+                        },
+                        {
+                            "text": (
+                                "Read all text from this design or post image. "
+                                "Return every readable word, preserving line breaks. "
+                                "Output only the raw extracted text, with no markdown fences, no preface, and no explanations."
+                            )
+                        },
+                    ],
+                }
+            ],
+            "generationConfig": {"temperature": 0},
+        }
+        try:
+            r = self._http.post(f"{BASE}/models/{self.model}:generateContent", json=body)
+            r.raise_for_status()
+            data = r.json()
+            return "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]).strip()
+        except Exception as exc:
+            raise GeminiError(f"Gemini image text extraction failed: {exc}") from exc
+

@@ -12,6 +12,8 @@ interface WorkspaceState {
   role: Role;
   setRole: (r: Role) => void;
   person: string;
+  reloadBrand: () => Promise<void>;
+  seedDemoBrand: () => Promise<void>;
 }
 
 const Ctx = createContext<WorkspaceState | null>(null);
@@ -23,6 +25,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [brandError, setBrandError] = useState<string | null>(null);
   const [role, setRoleState] = useState<Role>("creator");
 
+  const loadBrands = useCallback(async () => {
+    try {
+      const list = await api<BrandSummary[]>("/brands");
+      if (list.length === 0) {
+        setBrand(null);
+        setBrandError("No brand yet. Click below to load the NutriCrunch sample brand kit, or create one in the Brand vault.");
+      } else {
+        setBrand(list[0]);
+        setBrandError(null);
+      }
+    } catch (e: unknown) {
+      setBrand(null);
+      setBrandError((e as Error).message || "Could not connect to the API server.");
+    }
+  }, []);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(ROLE_KEY);
@@ -30,13 +48,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* storage unavailable: keep default */
     }
-    api<BrandSummary[]>("/brands")
-      .then((list) => {
-        if (list.length === 0) setBrandError("No brand yet. Run the seed script or add one in the Brand vault.");
-        else setBrand(list[0]);
-      })
-      .catch((e: Error) => setBrandError(e.message));
-  }, []);
+    loadBrands();
+  }, [loadBrands]);
+
+  const seedDemoBrand = useCallback(async () => {
+    try {
+      setBrandError(null);
+      await api<{ ok: boolean; brand: BrandSummary }>("/seed", { method: "POST" });
+      await loadBrands();
+    } catch (e: unknown) {
+      setBrandError((e as Error).message || "Failed to load sample brand kit.");
+    }
+  }, [loadBrands]);
 
   const setRole = useCallback((r: Role) => {
     setRoleState(r);
@@ -49,7 +72,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider
-      value={{ brand, brandError, role, setRole, person: role === "creator" ? "Creator" : "Manager" }}
+      value={{
+        brand,
+        brandError,
+        role,
+        setRole,
+        person: role === "creator" ? "Creator" : "Manager",
+        reloadBrand: loadBrands,
+        seedDemoBrand,
+      }}
     >
       {children}
     </Ctx.Provider>

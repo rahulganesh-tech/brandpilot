@@ -50,3 +50,7 @@ class FakeLLM:
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [bag_of_words(t) for t in texts]
+
+    def extract_image_text(self, image_bytes: bytes, mime_type: str = "image/png") -> str:
+        return ""
+
