@@ -95,7 +95,10 @@ Use **Viewing as** in the top bar to switch between Creator and Manager.
 
 ## Deploy
 
-See [DEPLOY.md](DEPLOY.md) for Supabase + Google Cloud Run / Vercel deployment steps.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frahulganesh-tech%2Fbrandpilot%2Ftree%2Fmain%2Fweb&project-name=brandpilot-web&env=API_URL&envDescription=FastAPI%20backend%20URL%20(e.g.%20https%3A%2F%2Fbrandpilot-api-...run.app))
+
+See [DEPLOY.md](DEPLOY.md) for full deployment steps (Supabase database, FastAPI on Google Cloud Run, and Next.js web on Vercel or Cloud Run).
+
 
 ## Accuracy
 
